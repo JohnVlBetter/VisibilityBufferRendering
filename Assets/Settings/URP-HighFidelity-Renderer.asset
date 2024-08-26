@@ -111,7 +111,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   settings:
-    shader: {fileID: 0}
     Event: 500
     renderQueue: 0
     layerMask:

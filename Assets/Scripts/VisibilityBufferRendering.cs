@@ -14,7 +14,6 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
     [System.Serializable]
     public class VisibilityBufferRenderingSettings
     {
-        public Shader shader;
         public RenderPassEvent Event = RenderPassEvent.AfterRenderingTransparents;
         public RenderQueueRangeEnum renderQueue = RenderQueueRangeEnum.Opaque;
         public LayerMask layerMask = -1;
@@ -67,19 +66,23 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
 
         private FilteringSettings m_FilteringSettings;
 
+        private Shader shader;
+        private Material material;
+
         string m_ProfilerTag = "VisibilityBufferRendering";
         ShaderTagId m_ShaderTagId;
 
         public VisibilityBufferPrePass(RenderQueueRange renderQueueRange, LayerMask layerMask)
         {
             m_FilteringSettings = new FilteringSettings(renderQueueRange, layerMask);
-            m_ShaderTagId = new ShaderTagId("VisibilityBufferRendering");
+            m_ShaderTagId = new ShaderTagId("UniversalForward");
             attachmentHandle = new RTHandle[1];
+            shader = Shader.Find("Universal Render Pipeline/VisibilityShader");
         }
         public void Setup(RenderTextureDescriptor baseDescriptor)
         {
             descriptor = baseDescriptor;
-            descriptor.colorFormat = RenderTextureFormat.ARGB32;
+            descriptor.colorFormat = RenderTextureFormat.ARGBFloat;
             descriptor.sRGB = false;
             descriptor.enableRandomWrite = false;
             descriptor.bindMS = false;
@@ -109,6 +112,26 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
         {
             SortingCriteria sortingCriteria = renderingData.cameraData.defaultOpaqueSortFlags;
             DrawingSettings drawingSettings = CreateDrawingSettings(m_ShaderTagId, ref renderingData, sortingCriteria);
+            if (shader == null)
+            {
+                shader = Shader.Find("Universal Render Pipeline/VisibilityShader");
+                if (shader == null)
+                {
+                    Debug.LogError("Shader not found!");
+                    return;
+                }
+            }
+            if (material == null)
+            {
+                material = CoreUtils.CreateEngineMaterial(shader);
+                if (material == null)
+                {
+                    Debug.LogError("Failed to create material!");
+                    return;
+                }
+            }
+            drawingSettings.overrideMaterial = material;
+            drawingSettings.overrideMaterialPassIndex = 0;
 
             CommandBuffer cmd = CommandBufferPool.Get(m_ProfilerTag);
             using (new ProfilingScope(cmd, new ProfilingSampler(m_ProfilerTag)))
