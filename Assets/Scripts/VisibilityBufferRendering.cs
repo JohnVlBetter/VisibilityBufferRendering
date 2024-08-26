@@ -42,7 +42,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
         };
 
 
-        visibilityBufferRenderingPass ??= new();
+        //visibilityBufferRenderingPass ??= new();
     }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -50,13 +50,13 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
         if (renderingData.cameraData.cameraType != CameraType.Game && renderingData.cameraData.cameraType != CameraType.SceneView) return;
         drawObjectsPass.Setup(renderingData.cameraData.cameraTargetDescriptor);
         renderer.EnqueuePass(drawObjectsPass);
-        visibilityBufferRenderingPass.Setup(settings.Event, settings, (UniversalRenderer)renderer);
-        renderer.EnqueuePass(visibilityBufferRenderingPass);
+        //visibilityBufferRenderingPass.Setup(settings.Event, settings, (UniversalRenderer)renderer);
+        //renderer.EnqueuePass(visibilityBufferRenderingPass);
     }
     protected override void Dispose(bool disposing)
     {
         drawObjectsPass.Dispose();
-        visibilityBufferRenderingPass.Dispose();
+        //visibilityBufferRenderingPass.Dispose();
     }
 
     class VisibilityBufferPrePass : ScriptableRenderPass
@@ -146,12 +146,13 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
             this.renderPassEvent = renderPassEvent;
             this.renderer = renderer;
 
-            Shader ssr = Shader.Find(shaderName);
-            if (ssr == null)
+            Shader vb = Shader.Find(shaderName);
+            if (vb == null)
             {
                 Debug.LogError("Shader找不到!");
+                return;
             }
-            material = CoreUtils.CreateEngineMaterial(settings.shader);
+            material = CoreUtils.CreateEngineMaterial(vb);
             ConfigureInput(ScriptableRenderPassInput.Color);
             ConfigureInput(ScriptableRenderPassInput.Depth);
         }
