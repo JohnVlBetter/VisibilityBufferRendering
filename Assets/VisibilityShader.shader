@@ -4,7 +4,7 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
     SubShader
     {
-        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalRenderPipeline" "IgnoreProjector" = "True" "Queue" = "Geometry"}
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalRenderPipeline" "IgnoreProjector" = "True" "Queue" = "Geometry" }
         LOD 0
 
         Pass
@@ -15,8 +15,6 @@ Shader "Universal Render Pipeline/VisibilityShader"
             HLSLPROGRAM
             #pragma target 5.0
 
-            //--------------------------------------
-            // GPU Instancing
             #pragma multi_compile_instancing
 
             #pragma vertex LitPassVertex
@@ -31,9 +29,12 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
             struct Varyings
             {
-                uint instanceID : SV_InstanceID;
                 float4 positionCS : SV_POSITION;
             };
+
+            CBUFFER_START(UnityPerDraw)
+                int _InstanceID;
+            CBUFFER_END
 
             Varyings LitPassVertex(Attributes input)
             {
@@ -45,7 +46,7 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
             float4 LitPassFragment(Varyings input, uint primitiveID : SV_PrimitiveID) : SV_Target
             {
-                return float4(input.instanceID / 3, primitiveID / 10.0, 0, 1);
+                return float4(_InstanceID / 10.0, primitiveID / 10.0, 0, 1);
             }
             ENDHLSL
         }
