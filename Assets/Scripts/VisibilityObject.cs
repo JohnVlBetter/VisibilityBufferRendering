@@ -2,18 +2,21 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshRenderer))]
-[ExecuteAlways]
 public class VisibilityObject : MonoBehaviour
 {
     private static List<VisibilityObject> objects = new List<VisibilityObject>();
     private static Dictionary<Mesh, int> meshes = new Dictionary<Mesh, int>();
+    private static Dictionary<Material, int> materials = new Dictionary<Material, int>();
     private static int objectMeshGlobalCount = 0;
-    private static int objectMeshCountMax = int.MaxValue;
+    private static int objectMaterialGlobalCount = 0;
+    private static int objectCountMax = int.MaxValue;
 
     private MeshFilter meshFilter;
     private MeshRenderer meshRenderer;
+
     public int meshGlobalStartIndex;
-    public int subMeshCount;
+    public int materialGlobalStartIndex;
+    private int subMeshCount;
 
     private void Awake()
     {
@@ -27,24 +30,41 @@ public class VisibilityObject : MonoBehaviour
         subMeshCount = meshFilter.sharedMesh.subMeshCount;
         if (meshes.TryGetValue(meshFilter.sharedMesh, out int idx))
         {
-            Debug.LogError($"{meshFilter.sharedMesh.name}已经被添加到VisibilityObject中!");
+            Debug.LogError($"Mesh:{meshFilter.sharedMesh.name}已经被添加!");
             meshGlobalStartIndex = idx;
         }
         else
         {
             meshGlobalStartIndex = objectMeshGlobalCount;
             objectMeshGlobalCount += subMeshCount;
-            if (objectMeshGlobalCount > objectMeshCountMax)
+            meshes.Add(meshFilter.sharedMesh, meshGlobalStartIndex);
+            if (objectMeshGlobalCount > objectCountMax)
             {
-                Debug.LogError("VisibilityObject数量超过最大值!");
+                Debug.LogError("Visibility Mesh数量超过最大值!");
             }
         }
+
         MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
         meshRenderer.GetPropertyBlock(propertyBlock);
         for (int i = 0; i < subMeshCount; i++)
         {
-            propertyBlock.SetInt("_InstanceID", meshGlobalStartIndex + i);
-            meshRenderer.SetPropertyBlock(propertyBlock, i);
+            var mat = meshRenderer.sharedMaterials[i];
+            if (materials.TryGetValue(mat, out idx))
+            {
+                Debug.LogError($"Material:{mat.name}已经被添加!");
+            }
+            else
+            {
+                materialGlobalStartIndex = objectMaterialGlobalCount++;
+                materials.Add(mat, materialGlobalStartIndex);
+                propertyBlock.SetInt("_InstanceID", meshGlobalStartIndex + i);
+                propertyBlock.SetInt("_MaterialID", materialGlobalStartIndex);
+                meshRenderer.SetPropertyBlock(propertyBlock, i);
+                if (objectMaterialGlobalCount > objectCountMax)
+                {
+                    Debug.LogError("Visibility Material数量超过最大值!");
+                }
+            }
         }
     }
 
