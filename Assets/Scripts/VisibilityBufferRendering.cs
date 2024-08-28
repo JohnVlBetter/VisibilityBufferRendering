@@ -63,7 +63,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
         descriptor.sRGB = false;
         descriptor.enableRandomWrite = false;
         descriptor.bindMS = false;
-        descriptor.msaaSamples = renderingData.cameraData.cameraTargetDescriptor.msaaSamples;
+        descriptor.msaaSamples = 1;
         descriptor.autoGenerateMips = false;
         descriptor.depthBufferBits = (int)DepthBits.None;
         RenderingUtils.ReAllocateIfNeeded(ref visibilityBufferHandle, descriptor, FilterMode.Point, TextureWrapMode.Clamp, name: "_VisibilityBuffer");
@@ -152,7 +152,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
                 context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
-                //cmd.SetGlobalTexture("_VisibilityBuffer", visibilityBufferHandle);
+                cmd.SetGlobalTexture("_VisibilityBuffer", visibilityBufferHandle);
             }
             context.ExecuteCommandBuffer(cmd);
             cmd.Release();
@@ -200,6 +200,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
             var descriptor = renderingData.cameraData.cameraTargetDescriptor;
             descriptor.msaaSamples = 1;
             descriptor.depthBufferBits = 0;
+            descriptor.colorFormat = RenderTextureFormat.ARGB32;
             RenderingUtils.ReAllocateIfNeeded(ref gBufferHandle, descriptor, FilterMode.Bilinear, name: "gBuffer");
         }
 
