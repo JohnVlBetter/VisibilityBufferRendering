@@ -14,6 +14,8 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
             HLSLPROGRAM
             #pragma target 5.0
+            #pragma require integers
+            #pragma enable_d3d11_debug_symbols 
 
             #pragma multi_compile_instancing
 
@@ -47,7 +49,7 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
             int4 LitPassFragment(Varyings input, uint primitiveID : SV_PrimitiveID) : SV_Target
             {
-                return int4(_InstanceID, primitiveID, _MaterialID, 1.0);
+                return int4(_InstanceID + 1, primitiveID, _MaterialID + 1, 1.0);
             }
             ENDHLSL
         }
@@ -59,8 +61,8 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
             HLSLPROGRAM
             #pragma target 5.0
-
             #pragma multi_compile_instancing
+            #pragma enable_d3d11_debug_symbols 
 
             #pragma vertex LitPassVertex
             #pragma fragment LitPassFragment
@@ -92,7 +94,7 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
             float4 LitPassFragment(Varyings input, uint primitiveID : SV_PrimitiveID) : SV_Target
             {
-                return float4((_InstanceID + 1) / 10.0, primitiveID / 100.0, (_MaterialID + 1) / 5.0, 1.0);
+                return float4(_InstanceID + 1, primitiveID, _MaterialID + 1, 1.0);
             }
             ENDHLSL
         }

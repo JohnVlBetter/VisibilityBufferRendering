@@ -58,19 +58,19 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
         }
         else
         {
-            descriptor.colorFormat = RenderTextureFormat.ARGBInt;
+            descriptor.colorFormat = RenderTextureFormat.RGBAUShort;
         }
         descriptor.sRGB = false;
         descriptor.enableRandomWrite = false;
         descriptor.bindMS = false;
-        descriptor.msaaSamples = 1;
+        descriptor.msaaSamples = renderingData.cameraData.cameraTargetDescriptor.msaaSamples;
         descriptor.autoGenerateMips = false;
         descriptor.depthBufferBits = (int)DepthBits.None;
         RenderingUtils.ReAllocateIfNeeded(ref visibilityBufferHandle, descriptor, FilterMode.Point, TextureWrapMode.Clamp, name: "_VisibilityBuffer");
         visibilityBufferPrePass.Setup(visibilityBufferHandle, settings.debug);
         renderer.EnqueuePass(visibilityBufferPrePass);
 
-        if (!settings.debug)
+        //if (!settings.debug)
         {
             visibilityBufferRenderingPass.Setup(settings.Event, settings, (UniversalRenderer)renderer, visibilityBufferHandle);
             renderer.EnqueuePass(visibilityBufferRenderingPass);
@@ -152,7 +152,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
                 context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
-                cmd.SetGlobalTexture("_VisibilityBuffer", visibilityBufferHandle);
+                //cmd.SetGlobalTexture("_VisibilityBuffer", visibilityBufferHandle);
             }
             context.ExecuteCommandBuffer(cmd);
             cmd.Release();
@@ -198,9 +198,9 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
         {
             renderTarget = renderer.cameraColorTargetHandle;
             var descriptor = renderingData.cameraData.cameraTargetDescriptor;
-            descriptor.msaaSamples = 1;
+            //descriptor.msaaSamples = 1;
             descriptor.depthBufferBits = 0;
-            descriptor.colorFormat = RenderTextureFormat.ARGB32;
+            descriptor.colorFormat = RenderTextureFormat.ARGBFloat;
             RenderingUtils.ReAllocateIfNeeded(ref gBufferHandle, descriptor, FilterMode.Bilinear, name: "gBuffer");
         }
 
@@ -215,7 +215,8 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
                     return;
                 }
 
-                RTHandle cameraDepthTargetHandle = renderer.cameraDepthTargetHandle;
+                //RTHandle cameraDepthTargetHandle = renderer.cameraDepthTargetHandle;
+                material.SetTexture("_VisibilityBuffer", visibilityBufferHandle);
                 Blitter.BlitCameraTexture(cmd, visibilityBufferHandle, gBufferHandle, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, material, 0);
             }
             context.ExecuteCommandBuffer(cmd);

@@ -111,7 +111,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   settings:
-    Event: 500
+    Event: 300
     renderQueue: 0
     layerMask:
       serializedVersion: 2
