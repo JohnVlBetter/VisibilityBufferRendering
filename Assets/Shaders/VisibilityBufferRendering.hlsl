@@ -9,17 +9,23 @@ float4 _CameraDepthTexture_TexelSize;
 TEXTURE2D(_VisibilityBuffer); SAMPLER(sampler_VisibilityBuffer);
 TEXTURE2D(_DepthBuffer); SAMPLER(sampler_DepthBuffer);
 
+Buffer<float> _VertexBuffer;
+Buffer<int> _IndexBuffer;
+
 float4 GenerateGBUffer(Varyings input) : SV_Target
 {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
     float2 uv = input.texcoord;
     
-    //uint4 visibilityBufferVal = _VisibilityBuffer.Sample(sampler_VisibilityBuffer, uv);
-    float2 _VisibilityBuffer_TexelSize = float2(1535.0, 767.0);
-    uint4 visibilityBufferVal = _VisibilityBuffer.Load(uint3(uv * _VisibilityBuffer_TexelSize.xy, 0));
+    //float vertex = _VertexBuffer[0];
+    //int index = _IndexBuffer[0];
+    half4 visibilityBufferValHalf = _VisibilityBuffer.Sample(sampler_VisibilityBuffer, uv);
+    //大坑，没法采样整数纹理，只能先采half4，然后转换成uint4，保证精度
+    uint4 visibilityBufferVal = uint4(asuint(visibilityBufferValHalf.r), asuint(visibilityBufferValHalf.g), 
+                                        asuint(visibilityBufferValHalf.b), asuint(visibilityBufferValHalf.a));
     //float depth = SAMPLE_TEXTURE2D_X(_DepthBuffer, sampler_DepthBuffer, uv).r;
     //float sceneLinearDepth = LinearEyeDepth(depth, _ZBufferParams);
-    return float4(visibilityBufferVal.x / 10.0, visibilityBufferVal.y / 100.0, visibilityBufferVal.z / 5.0, 1);
+    return float4(visibilityBufferVal.x / 2.0, visibilityBufferVal.y / 1000.0, visibilityBufferVal.z / 5.0, visibilityBufferVal.w / 100.0);
 }
 
 float4 GenerateGBUfferDebug(Varyings input) : SV_Target
@@ -27,8 +33,8 @@ float4 GenerateGBUfferDebug(Varyings input) : SV_Target
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
     float2 uv = input.texcoord;
     
-    float4 visibilityBufferVal = SAMPLE_TEXTURE2D(_VisibilityBuffer, sampler_VisibilityBuffer, uv);
+    float4 visibilityBufferVal = _VisibilityBuffer.Sample(sampler_VisibilityBuffer, uv);
     //float depth = SAMPLE_TEXTURE2D_X(_DepthBuffer, sampler_DepthBuffer, uv).r;
     //float sceneLinearDepth = LinearEyeDepth(depth, _ZBufferParams);
-    return float4(visibilityBufferVal.x / 10.0, visibilityBufferVal.y / 100.0, visibilityBufferVal.z / 5.0, 1);
+    return float4(visibilityBufferVal.x / 10.0, visibilityBufferVal.y / 1000.0, visibilityBufferVal.z / 5.0, visibilityBufferVal.w / 100.0);
 }

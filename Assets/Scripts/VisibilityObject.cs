@@ -2,17 +2,23 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshRenderer))]
+[ExecuteAlways]
 public class VisibilityObject : MonoBehaviour
 {
-    private static List<VisibilityObject> objects = new List<VisibilityObject>();
+    public static List<VisibilityObject> objects = new List<VisibilityObject>();
+    private static uint submeshSartIndex = 0;
+
     private static Dictionary<Mesh, int> meshes = new Dictionary<Mesh, int>();
+    public static List<Mesh> meshList = new List<Mesh>();
     private static Dictionary<Material, int> materials = new Dictionary<Material, int>();
+    public static List<Material> materialList = new List<Material>();
+
     private static int objectMeshGlobalCount = 0;
     private static int objectMaterialGlobalCount = 0;
     private static int objectCountMax = int.MaxValue;
 
     private MeshFilter meshFilter;
-    private MeshRenderer meshRenderer;
+    public MeshRenderer meshRenderer;
 
     public int meshGlobalStartIndex;
     public int materialGlobalStartIndex;
@@ -38,6 +44,7 @@ public class VisibilityObject : MonoBehaviour
             meshGlobalStartIndex = objectMeshGlobalCount;
             objectMeshGlobalCount += subMeshCount;
             meshes.Add(meshFilter.sharedMesh, meshGlobalStartIndex);
+            meshList.Add(meshFilter.sharedMesh);
             if (objectMeshGlobalCount > objectCountMax)
             {
                 Debug.LogError("Visibility Mesh数量超过最大值!");
@@ -45,9 +52,16 @@ public class VisibilityObject : MonoBehaviour
         }
 
         MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
-        meshRenderer.GetPropertyBlock(propertyBlock);
         for (int i = 0; i < subMeshCount; i++)
         {
+            meshRenderer.GetPropertyBlock(propertyBlock, i);
+            propertyBlock.SetInt("_SubMeshStartIndex", (int)submeshSartIndex);
+            propertyBlock.SetInt("_InstanceID", meshGlobalStartIndex + i);
+            propertyBlock.SetInt("_MaterialID", materialGlobalStartIndex);
+            meshRenderer.SetPropertyBlock(propertyBlock, i);
+            //todo 算的不对
+            submeshSartIndex += meshFilter.sharedMesh.GetIndexCount(i);
+
             var mat = meshRenderer.sharedMaterials[i];
             if (materials.TryGetValue(mat, out idx))
             {
@@ -57,9 +71,7 @@ public class VisibilityObject : MonoBehaviour
             {
                 materialGlobalStartIndex = objectMaterialGlobalCount++;
                 materials.Add(mat, materialGlobalStartIndex);
-                propertyBlock.SetInt("_InstanceID", meshGlobalStartIndex + i);
-                propertyBlock.SetInt("_MaterialID", materialGlobalStartIndex);
-                meshRenderer.SetPropertyBlock(propertyBlock, i);
+                materialList.Add(mat);
                 if (objectMaterialGlobalCount > objectCountMax)
                 {
                     Debug.LogError("Visibility Material数量超过最大值!");

@@ -37,6 +37,7 @@ Shader "Universal Render Pipeline/VisibilityShader"
             CBUFFER_START(UnityPerDraw)
                 int _InstanceID;
                 int _MaterialID;
+                int _SubMeshStartIndex;
             CBUFFER_END
 
             Varyings LitPassVertex(Attributes input)
@@ -47,9 +48,9 @@ Shader "Universal Render Pipeline/VisibilityShader"
                 return output;
             }
 
-            int4 LitPassFragment(Varyings input, uint primitiveID : SV_PrimitiveID) : SV_Target
+            uint4 LitPassFragment(Varyings input, uint primitiveID : SV_PrimitiveID) : SV_Target
             {
-                return int4(_InstanceID + 1, primitiveID, _MaterialID + 1, 1.0);
+                return uint4(_InstanceID + 1, primitiveID, _MaterialID + 1, _SubMeshStartIndex);
             }
             ENDHLSL
         }
@@ -82,6 +83,7 @@ Shader "Universal Render Pipeline/VisibilityShader"
             CBUFFER_START(UnityPerDraw)
                 int _InstanceID;
                 int _MaterialID;
+                int _SubMeshStartIndex;
             CBUFFER_END
 
             Varyings LitPassVertex(Attributes input)
@@ -94,7 +96,7 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
             float4 LitPassFragment(Varyings input, uint primitiveID : SV_PrimitiveID) : SV_Target
             {
-                return float4(_InstanceID + 1, primitiveID, _MaterialID + 1, 1.0);
+                return float4(_InstanceID + 1, primitiveID, _MaterialID + 1, _SubMeshStartIndex);
             }
             ENDHLSL
         }

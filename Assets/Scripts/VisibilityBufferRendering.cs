@@ -26,6 +26,9 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
     private RTHandle visibilityBufferHandle;
     private RenderTextureDescriptor descriptor;
 
+    public ComputeBuffer vertexBuffer;
+    public ComputeBuffer indexBuffer;
+
     public override void Create()
     {
         RenderQueueRange renderQueueRange = RenderQueueRange.all;
@@ -43,6 +46,88 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
             renderPassEvent = RenderPassEvent.AfterRenderingPrePasses
         };
         visibilityBufferRenderingPass ??= new();
+    }
+
+    public void CreateBuffer()
+    {
+        int vertexBufferSize = 0;
+        uint indexBufferSize = 0;
+        //Debug.Log($"meshList.Count:{VisibilityObject.meshList.Count}, materialList.Count:{VisibilityObject.materialList.Count}");
+        MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
+        for (int idx = 0; idx < VisibilityObject.meshList.Count; ++idx)
+        {
+            var mesh = VisibilityObject.meshList[idx];
+            //Debug.LogWarning($"mesh:{mesh.name}");
+            vertexBufferSize += mesh.vertexCount * (3 + 3 + 4 + 2);//position, normal, tangent, uv
+            for (int i = 0; i < mesh.subMeshCount; i++)
+            {
+                indexBufferSize += mesh.GetIndexCount(i);
+            }
+        }
+        //Debug.Log($"vertexBufferSize:{vertexBufferSize}, indexBufferSize:{indexBufferSize}, meshCount:{VisibilityObject.meshList.Count}");
+
+        vertexBuffer = new ComputeBuffer(vertexBufferSize, sizeof(float));
+        indexBuffer = new ComputeBuffer((int)indexBufferSize, sizeof(int));
+
+        float[] vertexData = new float[vertexBufferSize];
+        float[] indexData = new float[indexBufferSize];
+
+        int vertexOffset = 0, indexOffset = 0;
+        foreach (var mesh in VisibilityObject.meshList)
+        {
+            //position
+            Vector3[] vertices = mesh.vertices;
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                vertexData[vertexOffset + i * 3] = vertices[i].x;
+                vertexData[vertexOffset + i * 3 + 1] = vertices[i].y;
+                vertexData[vertexOffset + i * 3 + 2] = vertices[i].z;
+            }
+            vertexOffset += vertices.Length * 3;
+
+            //normal
+            Vector3[] normals = mesh.normals;
+            for (int i = 0; i < normals.Length; i++)
+            {
+                vertexData[vertexOffset + i * 3] = normals[i].x;
+                vertexData[vertexOffset + i * 3 + 1] = normals[i].y;
+                vertexData[vertexOffset + i * 3 + 2] = normals[i].z;
+            }
+            vertexOffset += normals.Length * 3;
+
+            //tangent
+            Vector4[] tangents = mesh.tangents;
+            for (int i = 0; i < tangents.Length; i++)
+            {
+                vertexData[vertexOffset + i * 4] = tangents[i].x;
+                vertexData[vertexOffset + i * 4 + 1] = tangents[i].y;
+                vertexData[vertexOffset + i * 4 + 2] = tangents[i].z;
+                vertexData[vertexOffset + i * 4 + 3] = tangents[i].w;
+            }
+            vertexOffset += tangents.Length * 4;
+
+            //uv
+            Vector2[] uvs = mesh.uv;
+            for (int i = 0; i < uvs.Length; i++)
+            {
+                vertexData[vertexOffset + i * 2] = uvs[i].x;
+                vertexData[vertexOffset + i * 2 + 1] = uvs[i].y;
+            }
+            vertexOffset += uvs.Length * 2;
+
+            //index
+            for (int i = 0; i < mesh.subMeshCount; i++)
+            {
+                int[] indices = mesh.GetIndices(i);
+                for (int j = 0; j < indices.Length; j++)
+                {
+                    indexData[indexOffset + j] = indices[j];
+                }
+                indexOffset += indices.Length;
+            }
+        }
+        vertexBuffer.SetData(vertexData);
+        indexBuffer.SetData(indexData);
     }
 
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
@@ -72,13 +157,25 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
 
         //if (!settings.debug)
         {
-            visibilityBufferRenderingPass.Setup(settings.Event, settings, (UniversalRenderer)renderer, visibilityBufferHandle);
+            if (vertexBuffer == null || indexBuffer == null)
+            {
+                /*if(vertexBuffer.count == 0 || indexBuffer.count == 0){
+                    vertexBuffer?.Release();
+                    indexBuffer?.Release();
+                }*/
+                CreateBuffer();
+            }
+
+            visibilityBufferRenderingPass.Setup(settings.Event, settings, (UniversalRenderer)renderer,
+                visibilityBufferHandle, vertexBuffer, indexBuffer, settings.debug);
             renderer.EnqueuePass(visibilityBufferRenderingPass);
         }
     }
     protected override void Dispose(bool disposing)
     {
         visibilityBufferHandle?.Release();
+        vertexBuffer?.Dispose();
+        indexBuffer?.Dispose();
         visibilityBufferPrePass.Dispose();
         visibilityBufferRenderingPass.Dispose();
     }
@@ -169,20 +266,14 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
         private RTHandle renderTarget;
         private RTHandle visibilityBufferHandle;
         private RTHandle gBufferHandle;
+        private int passIdx = 0;
 
         private UniversalRenderer renderer;
 
         private const string shaderName = "VisibilityBufferRenderingShader";
 
-        public void Setup(RenderPassEvent renderPassEvent,
-            VisibilityBufferRendering.VisibilityBufferRenderingSettings settings,
-            UniversalRenderer renderer,
-            RTHandle _visibilityBufferHandle)
+        public VisibilityBufferRenderingPass()
         {
-            this.renderPassEvent = renderPassEvent;
-            this.renderer = renderer;
-            visibilityBufferHandle = _visibilityBufferHandle;
-
             Shader vb = Shader.Find(shaderName);
             if (vb == null)
             {
@@ -190,8 +281,27 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
                 return;
             }
             material = CoreUtils.CreateEngineMaterial(vb);
+        }
+
+        public void Setup(RenderPassEvent renderPassEvent,
+            VisibilityBufferRendering.VisibilityBufferRenderingSettings settings,
+            UniversalRenderer renderer,
+            RTHandle _visibilityBufferHandle,
+            ComputeBuffer vertexBuffer,
+            ComputeBuffer indexBuffer,
+            bool debug = false)
+        {
+            this.renderPassEvent = renderPassEvent;
+            this.renderer = renderer;
+            visibilityBufferHandle = _visibilityBufferHandle;
+
             ConfigureInput(ScriptableRenderPassInput.Color);
             ConfigureInput(ScriptableRenderPassInput.Depth);
+
+            passIdx = debug ? 1 : 0;
+
+            material.SetBuffer("_VertexBuffer", vertexBuffer);
+            material.SetBuffer("_IndexBuffer", indexBuffer);
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -200,7 +310,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
             var descriptor = renderingData.cameraData.cameraTargetDescriptor;
             //descriptor.msaaSamples = 1;
             descriptor.depthBufferBits = 0;
-            descriptor.colorFormat = RenderTextureFormat.ARGBFloat;
+            descriptor.colorFormat = RenderTextureFormat.ARGB32;
             RenderingUtils.ReAllocateIfNeeded(ref gBufferHandle, descriptor, FilterMode.Bilinear, name: "gBuffer");
         }
 
@@ -217,7 +327,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
 
                 //RTHandle cameraDepthTargetHandle = renderer.cameraDepthTargetHandle;
                 material.SetTexture("_VisibilityBuffer", visibilityBufferHandle);
-                Blitter.BlitCameraTexture(cmd, visibilityBufferHandle, gBufferHandle, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, material, 0);
+                Blitter.BlitCameraTexture(cmd, visibilityBufferHandle, gBufferHandle, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, material, passIdx);
             }
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();

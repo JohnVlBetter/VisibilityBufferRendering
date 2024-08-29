@@ -26,9 +26,24 @@ Shader "VisibilityBufferRenderingShader"
             Cull Off
 
             HLSLPROGRAM
-            #pragma enable_d3d11_debug_symbols 
+            #pragma require integers
             #pragma vertex Vert
             #pragma fragment GenerateGBUffer
+            #pragma enable_d3d11_debug_symbols 
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "GenerateGBUfferDebugPass"
+            ZTest Off
+            ZWrite Off
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma enable_d3d11_debug_symbols 
+            #pragma vertex Vert
+            #pragma fragment GenerateGBUfferDebug
             ENDHLSL
         }
 

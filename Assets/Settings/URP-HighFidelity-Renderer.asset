@@ -116,4 +116,4 @@ MonoBehaviour:
     layerMask:
       serializedVersion: 2
       m_Bits: 4294967295
-    debug: 0
+    debug: 1
