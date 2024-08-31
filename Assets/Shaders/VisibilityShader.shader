@@ -50,7 +50,7 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
             uint4 LitPassFragment(Varyings input, uint primitiveID : SV_PrimitiveID) : SV_Target
             {
-                return uint4(_InstanceID + 1, primitiveID, _MaterialID + 1, _SubMeshStartIndex);
+                return uint4(_InstanceID, primitiveID, _MaterialID, _SubMeshStartIndex);
             }
             ENDHLSL
         }
@@ -96,7 +96,7 @@ Shader "Universal Render Pipeline/VisibilityShader"
 
             float4 LitPassFragment(Varyings input, uint primitiveID : SV_PrimitiveID) : SV_Target
             {
-                return float4(_InstanceID + 1, primitiveID, _MaterialID + 1, _SubMeshStartIndex);
+                return float4(_InstanceID, primitiveID, _MaterialID, _SubMeshStartIndex);
             }
             ENDHLSL
         }

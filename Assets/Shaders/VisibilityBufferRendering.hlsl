@@ -25,7 +25,11 @@ float4 GenerateGBUffer(Varyings input) : SV_Target
                                         asuint(visibilityBufferValHalf.b), asuint(visibilityBufferValHalf.a));
     //float depth = SAMPLE_TEXTURE2D_X(_DepthBuffer, sampler_DepthBuffer, uv).r;
     //float sceneLinearDepth = LinearEyeDepth(depth, _ZBufferParams);
-    return float4(visibilityBufferVal.x / 2.0, visibilityBufferVal.y / 1000.0, visibilityBufferVal.z / 5.0, visibilityBufferVal.w / 100.0);
+    uint subMeshStartIndex = visibilityBufferVal.w;
+    uint triangleID = visibilityBufferVal.y;
+    uint vertexIdx = _IndexBuffer[triangleID * 3 + subMeshStartIndex] * 12;
+    float3 normal = float3(_VertexBuffer[vertexIdx + 3], _VertexBuffer[vertexIdx + 4], _VertexBuffer[vertexIdx + 5]);
+    return float4(normal, 1.0);
 }
 
 float4 GenerateGBUfferDebug(Varyings input) : SV_Target
