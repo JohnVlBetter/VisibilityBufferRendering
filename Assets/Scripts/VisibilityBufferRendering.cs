@@ -28,6 +28,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
 
     public ComputeBuffer vertexBuffer;
     public ComputeBuffer indexBuffer;
+    public ComputeBuffer objectToWorldMatrixBuffer;
 
     public override void Create()
     {
@@ -73,9 +74,9 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
         visibilityBufferPrePass.Setup(visibilityBufferHandle, settings.debug);
         renderer.EnqueuePass(visibilityBufferPrePass);
 
-        VisibilityBufferRenderingMgr.Instance.CreateBufferIfNeed(ref vertexBuffer, ref indexBuffer);
+        VisibilityBufferRenderingMgr.Instance.CreateBufferIfNeed(ref vertexBuffer, ref indexBuffer, ref objectToWorldMatrixBuffer);
         visibilityBufferRenderingPass.Setup(settings.Event, settings, (UniversalRenderer)renderer,
-            visibilityBufferHandle, vertexBuffer, indexBuffer, settings.debug);
+            visibilityBufferHandle, vertexBuffer, indexBuffer, objectToWorldMatrixBuffer, settings.debug);
         renderer.EnqueuePass(visibilityBufferRenderingPass);
     }
     protected override void Dispose(bool disposing)
@@ -83,6 +84,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
         visibilityBufferHandle?.Release();
         vertexBuffer?.Dispose();
         indexBuffer?.Dispose();
+        objectToWorldMatrixBuffer?.Dispose();
         visibilityBufferPrePass.Dispose();
         visibilityBufferRenderingPass.Dispose();
     }
@@ -196,6 +198,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
             RTHandle _visibilityBufferHandle,
             ComputeBuffer vertexBuffer,
             ComputeBuffer indexBuffer,
+            ComputeBuffer objectToWorldMatrixBuffer,
             bool debug = false)
         {
             this.renderPassEvent = renderPassEvent;
@@ -209,6 +212,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
 
             material.SetBuffer("_VertexBuffer", vertexBuffer);
             material.SetBuffer("_IndexBuffer", indexBuffer);
+            material.SetBuffer("_ObjectToWorldMatrixBuffer", objectToWorldMatrixBuffer);
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -234,6 +238,9 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
 
                 //RTHandle cameraDepthTargetHandle = renderer.cameraDepthTargetHandle;
                 material.SetTexture("_VisibilityBuffer", visibilityBufferHandle);
+                Matrix4x4 projectionViewCombineMatrix = GL.GetGPUProjectionMatrix(cameraData.GetProjectionMatrix(), true) * cameraData.GetViewMatrix();
+                material.SetMatrix("_ProjectionViewCombineMatrix", projectionViewCombineMatrix);
+                material.SetVector("_CameraColorTextureSize", new Vector4(renderTarget.rt.width, renderTarget.rt.height, 1.0f / renderTarget.rt.width, 1.0f / renderTarget.rt.height));
                 Blitter.BlitCameraTexture(cmd, visibilityBufferHandle, gBufferHandle, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, material, passIdx);
             }
             context.ExecuteCommandBuffer(cmd);

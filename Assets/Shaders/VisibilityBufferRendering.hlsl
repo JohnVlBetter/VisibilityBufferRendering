@@ -4,13 +4,16 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareNormalsTexture.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/NormalReconstruction.hlsl"
-float4 _CameraDepthTexture_TexelSize;
 
 TEXTURE2D(_VisibilityBuffer); SAMPLER(sampler_VisibilityBuffer);
 TEXTURE2D(_DepthBuffer); SAMPLER(sampler_DepthBuffer);
 
 Buffer<float> _VertexBuffer;
 Buffer<int> _IndexBuffer;
+Buffer<float4x4> _ObjectToWorldMatrixBuffer;
+
+float4x4 _ProjectionViewCombineMatrix;
+float4 _CameraColorTextureSize;
 
 float4 GenerateGBUffer(Varyings input) : SV_Target
 {

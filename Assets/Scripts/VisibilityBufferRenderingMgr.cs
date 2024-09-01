@@ -33,17 +33,8 @@ public class VisibilityBufferRenderingMgr : MonoBehaviour
     private List<float> vertexData = new List<float>();//position, normal, tangent, uv
     private int vertexCount = 0;
     private List<int> indexData = new List<int>();//index
+    private List<Matrix4x4> objectToWorldMatrices = new List<Matrix4x4>();
 
-    /*private void OnEnable()
-    {
-        objects.Clear();
-        meshes.Clear();
-        materials.Clear();
-        vertexData.Clear();
-        vertexCount = 0;
-        indexData.Clear();
-    }
-    */
     private int GetOrAddMaterialIdx(Material material)
     {
         if (materials.TryGetValue(material, out int materialIdx))
@@ -56,8 +47,6 @@ public class VisibilityBufferRenderingMgr : MonoBehaviour
 
     public VisibilityObjectData ResigterObject(VisibilityObject obj)
     {
-        objects.Add(obj);
-
         VisibilityObjectData data = new VisibilityObjectData();
 
         var mesh = obj.meshFilter.sharedMesh;
@@ -114,8 +103,10 @@ public class VisibilityBufferRenderingMgr : MonoBehaviour
             vertexCount += mesh.vertexCount;
             meshes.Add(mesh, subMeshStartIndexNew);
         }
-        //占位，目前没用
-        data.instanceID = obj.GetInstanceID();
+
+        data.instanceID = objectToWorldMatrices.Count;
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix);
+        objects.Add(obj);
 
         return data;
     }
@@ -125,7 +116,7 @@ public class VisibilityBufferRenderingMgr : MonoBehaviour
         objects.Remove(obj);
     }
 
-    public void CreateBufferIfNeed(ref ComputeBuffer vertexBuffer, ref ComputeBuffer indexBuffer)
+    public void CreateBufferIfNeed(ref ComputeBuffer vertexBuffer, ref ComputeBuffer indexBuffer, ref ComputeBuffer objectToWorldMatrixBuffer)
     {
         if (vertexBuffer == null)
         {
@@ -136,6 +127,11 @@ public class VisibilityBufferRenderingMgr : MonoBehaviour
         {
             indexBuffer = new ComputeBuffer(indexData.Count, sizeof(int));
             indexBuffer.SetData(indexData);
+        }
+        if (objectToWorldMatrixBuffer == null)
+        {
+            objectToWorldMatrixBuffer = new ComputeBuffer(objectToWorldMatrices.Count, 16 * sizeof(float));
+            objectToWorldMatrixBuffer.SetData(objectToWorldMatrices);
         }
     }
 }
