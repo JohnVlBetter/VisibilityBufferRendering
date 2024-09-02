@@ -16,6 +16,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
     {
         public RenderPassEvent Event = RenderPassEvent.AfterRenderingTransparents;
         public RenderQueueRangeEnum renderQueue = RenderQueueRangeEnum.Opaque;
+        public Texture2D baseColorTexture;
         public LayerMask layerMask = -1;
         public bool debug = false;
     }
@@ -157,7 +158,11 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
             {
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
-                context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
+                foreach (var obj in VisibilityBufferRenderingMgr.Instance.objects)
+                {
+                    cmd.DrawRenderer(obj.meshRenderer, obj.meshRenderer.sharedMaterial);
+                }
+                //context.DrawRenderers(renderingData.cullResults, ref drawingSettings, ref m_FilteringSettings);
                 //cmd.SetGlobalTexture("_VisibilityBuffer", visibilityBufferHandle);
             }
             context.ExecuteCommandBuffer(cmd);
@@ -213,6 +218,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
             material.SetBuffer("_VertexBuffer", vertexBuffer);
             material.SetBuffer("_IndexBuffer", indexBuffer);
             material.SetBuffer("_ObjectToWorldMatrixBuffer", objectToWorldMatrixBuffer);
+            material.SetTexture("_BaseColorTexture", settings.baseColorTexture);
         }
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
@@ -241,7 +247,7 @@ public class VisibilityBufferRendering : ScriptableRendererFeature
                 Matrix4x4 projectionViewCombineMatrix = GL.GetGPUProjectionMatrix(cameraData.GetProjectionMatrix(), true) * cameraData.GetViewMatrix();
                 material.SetMatrix("_ProjectionViewCombineMatrix", projectionViewCombineMatrix);
                 material.SetVector("_CameraColorTextureSize", new Vector4(renderTarget.rt.width, renderTarget.rt.height, 1.0f / renderTarget.rt.width, 1.0f / renderTarget.rt.height));
-                Blitter.BlitCameraTexture(cmd, visibilityBufferHandle, gBufferHandle, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, material, passIdx);
+                Blitter.BlitCameraTexture(cmd, visibilityBufferHandle, renderTarget, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, material, passIdx);
             }
             context.ExecuteCommandBuffer(cmd);
             cmd.Clear();

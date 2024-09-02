@@ -13,7 +13,6 @@ Shader "Universal Render Pipeline/VisibilityShader"
             Tags { "LightMode" = "VisibilityBufferRendering" }
 
             HLSLPROGRAM
-            #pragma target 5.0
             #pragma require integers
             #pragma enable_d3d11_debug_symbols 
 
@@ -61,7 +60,6 @@ Shader "Universal Render Pipeline/VisibilityShader"
             Tags { "LightMode" = "VisibilityBufferRenderingDebug" }
 
             HLSLPROGRAM
-            #pragma target 5.0
             #pragma multi_compile_instancing
             #pragma enable_d3d11_debug_symbols 
 

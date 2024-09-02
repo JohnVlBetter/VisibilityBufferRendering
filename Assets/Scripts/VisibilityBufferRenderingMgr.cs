@@ -33,7 +33,7 @@ public class VisibilityBufferRenderingMgr : MonoBehaviour
     private List<float> vertexData = new List<float>();//position, normal, tangent, uv
     private int vertexCount = 0;
     private List<int> indexData = new List<int>();//index
-    private List<Matrix4x4> objectToWorldMatrices = new List<Matrix4x4>();
+    private List<float> objectToWorldMatrices = new List<float>();
 
     private int GetOrAddMaterialIdx(Material material)
     {
@@ -105,7 +105,22 @@ public class VisibilityBufferRenderingMgr : MonoBehaviour
         }
 
         data.instanceID = objectToWorldMatrices.Count;
-        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m00);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m01);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m02);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m03);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m10);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m11);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m12);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m13);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m20);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m21);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m22);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m23);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m30);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m31);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m32);
+        objectToWorldMatrices.Add(obj.transform.localToWorldMatrix.m33);
         objects.Add(obj);
 
         return data;
@@ -130,7 +145,7 @@ public class VisibilityBufferRenderingMgr : MonoBehaviour
         }
         if (objectToWorldMatrixBuffer == null)
         {
-            objectToWorldMatrixBuffer = new ComputeBuffer(objectToWorldMatrices.Count, 16 * sizeof(float));
+            objectToWorldMatrixBuffer = new ComputeBuffer(objectToWorldMatrices.Count, sizeof(float));
             objectToWorldMatrixBuffer.SetData(objectToWorldMatrices);
         }
     }
